@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zar Bazar Hisbot</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    :root { --primary: #16a34a; --primary-dark: #15803d; --primary-light: #22c55e; }
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #f8fafc; }
+    .card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: all 0.3s ease; }
+    .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .btn-primary { background: var(--primary); color: white; transition: all 0.2s; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .gradient-bg { background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); }
+    .progress-ring { transform: rotate(-90deg); }
+    .tab-active { border-bottom: 3px solid var(--primary); color: var(--primary); font-weight: 600; }
+    .modal { backdrop-filter: blur(4px); animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-content { animation: slideUp 0.3s ease; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .habit-bar { height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .habit-fill { height: 100%; background: var(--primary); transition: width 0.5s ease; }
+    .admin-badge { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); }
+    .file-preview { max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px; }
+    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center p-4 gradient-bg">
+    <div class="card w-full max-w-md p-8">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full gradient-bg mb-4">
+                <i class="fas fa-chart-line text-white text-2xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900">Zar Bazar Hisbot</h1>
+            <p class="text-gray-500 mt-2">Xodimlar samaradorligini kuzatish tizimi</p>
+        </div>
+        <div id="loginError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+        <form id="loginForm" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Login</label>
+                <input type="text" id="loginUsername" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Foydalanuvchi nomi" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Parol</label>
+                <input type="password" id="loginPassword" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Parolingiz" required>
+            </div>
+            <button type="submit" id="loginBtn" class="w-full btn-primary py-3 rounded-xl font-semibold">
+                <i class="fas fa-sign-in-alt mr-2"></i>Kirish
+            </button>
+        </form>
+        <div class="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
+            <p class="text-xs text-gray-600 mb-2 font-semibold">Demo hisob:</p>
+            <p class="text-xs text-gray-600">Admin: admin / admin123</p>
+        </div>
+    </div>
+</div>
+
+<!-- Main App -->
+<div id="mainApp" class="hidden min-h-screen">
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-gray-900">Zar Bazar Hisbot</h1>
+                    <span id="adminBadge" class="hidden admin-badge text-white text-xs px-3 py-1 rounded-full font-semibold ml-2">
+                        <i class="fas fa-crown mr-1"></i>Admin Panel
+                    </span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold text-gray-900" id="userName">Foydalanuvchi</p>
+                        <p class="text-xs text-gray-500" id="userRole">Hodim</p>
+                    </div>
+                    <button onclick="logout()" class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <i class="fas fa-sign-out-alt text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex gap-8 overflow-x-auto">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-active py-4 px-2 whitespace-nowrap text-sm transition">
+                    <i class="fas fa-home mr-2"></i>Bosh sahifa
+                </button>
+                <button onclick="switchTab('kpi')" id="tab-kpi" class="py-4 px-2 whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 transition">
+                    <i class="fas fa-coins mr-2"></i>KPI
+                </button>
+                <button onclick="switchTab('savdo')" id="tab-savdo" class="py-4 px-2 whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 transition">
+                    <i class="fas fa-shopping-cart mr-2"></i>Savdo
+                </button>
+                <button onclick="switchTab('admin')" id="tab-admin" class="py-4 px-2 whitespace-nowrap text-sm text-gray-600 hover:text-gray-900 transition hidden">
+                    <i class="fas fa-users-cog mr-2"></i>Admin Panel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Dashboard -->
+        <div id="dashboardContent" class="space-y-6">
+            <div class="card p-6 gradient-bg text-white">
+                <div class="flex items-center gap-4">
+                    <i class="fas fa-lightbulb text-3xl"></i>
+                    <div>
+                        <h3 class="text-lg font-semibold">Ishtaxa ovqat kelganida keladi!</h3>
+                        <p class="text-sm opacity-90 mt-1">Bugungi kunni samarali o'tkazing va maqsadlaringizga erishing</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="card px-4 py-3">
+                        <label class="text-xs text-gray-500">Hafta boshi</label>
+                        <input type="date" id="weekStart" onchange="renderDashboard()" class="block font-semibold text-gray-900 outline-none bg-transparent">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="setFilter('hafta')" id="filter-hafta" class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium">1 hafta</button>
+                    <button onclick="setFilter('oy')" id="filter-oy" class="px-4 py-2 rounded-lg bg-white text-gray-700 text-sm font-medium border border-gray-300">1 oy</button>
+                    <button onclick="setFilter('davomiy')" id="filter-davomiy" class="px-4 py-2 rounded-lg bg-white text-gray-700 text-sm font-medium border border-gray-300">Davomiy</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="weekCards"></div>
+
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-6">Umumiy o'sish</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div><canvas id="growthChart"></canvas></div>
+                    <div class="flex items-center justify-center">
+                        <div class="relative">
+                            <canvas id="circularProgress" width="200" height="200"></canvas>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-4xl font-bold text-gray-900" id="overallProgress">0%</span>
+                                <span class="text-sm text-gray-500">Bajarildi</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900">Odatlar kuzatuvchisi</h3>
+                    <button onclick="openAddTaskModal()" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-plus mr-2"></i>Yangi vazifa
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full" id="habitTable"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI -->
+        <div id="kpiContent" class="hidden space-y-6">
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg font-bold text-gray-900">KPI Bo'limi</h3>
+                    <button onclick="openAddKPIModal()" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-plus mr-2"></i>Yangi ish
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Sana</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Vazifa nomi</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Kategoriya</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Summa</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Izoh</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kpiTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-semibold text-gray-900">Jami oylik:</span>
+                        <span class="text-2xl font-bold text-green-600" id="totalSalary">0 so'm</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Savdo -->
+        <div id="savdoContent" class="hidden space-y-6">
+
+            <!-- Hodim: KPI natijasi -->
+            <div id="myKpiCard" class="card p-6 gradient-bg text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold">Mening savdo natijam</h3>
+                    <select id="kpiMonth" onchange="renderSavdo()" class="bg-white bg-opacity-20 text-white border border-white border-opacity-30 rounded-lg px-3 py-1 text-sm outline-none">
+                    </select>
+                </div>
+                <div id="kpiResultBox">
+                    <p class="text-white opacity-80">Yuklanmoqda...</p>
+                </div>
+            </div>
+
+            <!-- Kunlik savdo kiritish -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Kunlik savdo kiritish</h3>
+                    <button onclick="openSaleModal()" class="btn-primary px-4 py-2 rounded-lg text-sm font-medium">
+                        <i class="fas fa-plus mr-2"></i>Savdo kiritish
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Sana</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Summa</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Izoh</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Amal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dailySalesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Admin: barcha hodimlar savdo KPI -->
+            <div id="adminSalesSection" class="hidden space-y-4">
+                <div class="card p-6">
+                    <div class="flex flex-wrap gap-3 items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold text-gray-900">Barcha hodimlar savdo KPI</h3>
+                        <div class="flex gap-3">
+                            <select id="adminFilialFilter" onchange="renderAdminSales()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none">
+                                <option value="">Barcha filiallar</option>
+                            </select>
+                            <select id="adminSalesMonth" onchange="renderAdminSales()" class="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none"></select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">F.I.O</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Filial</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Lavozim</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Reja</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Bajarildi</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Foiz</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Komissiya</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Bonus</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Jami</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminSalesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Reja belgilash -->
+                <div class="card p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Hodimga savdo rejasi belgilash</h3>
+                    <div id="planError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Hodim</label>
+                            <select id="planUserId" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Filial</label>
+                            <select id="planFilialId" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Oy</label>
+                            <input type="month" id="planMonth" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Reja summasi (so'm)</label>
+                            <input type="number" id="planAmount" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none" placeholder="250000000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Komissiya foizi</label>
+                            <select id="planRate" class="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none">
+                                <option value="0.04">0.04% — Oddiy (sotuvchi/shartnomachi/yordamchi)</option>
+                                <option value="0.08">0.08% — Ikki vazifa (sotuvchi+shartnomachi va h.k.)</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="savePlan()" class="w-full btn-primary py-2 rounded-lg font-medium">
+                                <i class="fas fa-save mr-2"></i>Rejani saqlash
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Panel -->
+        <div id="adminContent" class="hidden space-y-6">
+            <!-- KPI Sozlamalari -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-6">KPI Sozlamalari (so'm)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Yengil kategoriya</label>
+                        <input type="number" id="rateYengil" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Summa">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">O'rta kategoriya</label>
+                        <input type="number" id="rateOrta" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Summa">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Og'ir kategoriya</label>
+                        <input type="number" id="rateOgir" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Summa">
+                    </div>
+                </div>
+                <button onclick="saveKPISettings()" class="btn-primary mt-4 px-6 py-2 rounded-lg font-medium">
+                    <i class="fas fa-save mr-2"></i>Saqlash
+                </button>
+            </div>
+
+            <!-- Yangi hodim -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-6">Yangi hodim qo'shish</h3>
+                <div id="addEmpError" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="text" id="newEmpFIO" class="px-4 py-2 border border-gray-300 rounded-lg" placeholder="F.I.O">
+                    <input type="text" id="newEmpLogin" class="px-4 py-2 border border-gray-300 rounded-lg" placeholder="Login">
+                    <input type="password" id="newEmpPassword" class="px-4 py-2 border border-gray-300 rounded-lg" placeholder="Parol">
+                    <input type="text" id="newEmpLavozim" class="px-4 py-2 border border-gray-300 rounded-lg" placeholder="Lavozim">
+                    <button onclick="addEmployee()" class="btn-primary px-6 py-2 rounded-lg font-medium md:col-span-2">
+                        <i class="fas fa-user-plus mr-2"></i>Qo'shish
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hodimlar statistikasi -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-6">Hodimlar statistikasi</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div><canvas id="employeeComparisonChart"></canvas></div>
+                    <div class="space-y-3" id="employeeStatsList"></div>
+                </div>
+            </div>
+
+            <!-- Shablonlar -->
+            <div class="card p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-6">Vazifa shablonlari</h3>
+                <div class="flex gap-3 mb-4">
+                    <input type="text" id="templateName" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg" placeholder="Shablon nomi">
+                    <button onclick="addTemplate()" class="btn-primary px-6 py-2 rounded-lg font-medium">
+                        <i class="fas fa-plus mr-2"></i>Qo'shish
+                    </button>
+                </div>
+                <div class="space-y-2" id="templatesList"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Task Modal -->
+<div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 modal">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 modal-content">
+        <h3 class="text-xl font-bold text-gray-900 mb-4" id="modalTitle">Yangi vazifa</h3>
+        <div class="space-y-4">
+            <input type="hidden" id="editTaskId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Vazifa nomi</label>
+                <input type="text" id="taskName" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Vazifa nomini kiriting">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Izoh</label>
+                <textarea id="taskComment" class="w-full px-4 py-2 border border-gray-300 rounded-lg" rows="3"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fayl yuklash</label>
+                <input type="file" id="taskFile" class="w-full px-4 py-2 border border-gray-300 rounded-lg" accept="image/*,video/*,.pdf,.doc,.docx">
+                <div id="filePreview" class="mt-3"></div>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button onclick="saveTask()" class="flex-1 btn-primary py-2 rounded-lg font-medium">Saqlash</button>
+                <button onclick="closeModal('taskModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium">Bekor qilish</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Modal -->
+<div id="kpiModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 modal">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 modal-content">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">KPI ish qo'shish</h3>
+        <div class="space-y-4">
+            <input type="hidden" id="editKPIId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sana</label>
+                <input type="date" id="kpiDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Vazifa nomi</label>
+                <input type="text" id="kpiTaskName" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Kategoriya</label>
+                <select id="kpiCategory" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="Yengil">Yengil</option>
+                    <option value="Orta">O'rta</option>
+                    <option value="Ogir">Og'ir</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Izoh</label>
+                <textarea id="kpiComment" class="w-full px-4 py-2 border border-gray-300 rounded-lg" rows="2"></textarea>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button onclick="saveKPI()" class="flex-1 btn-primary py-2 rounded-lg font-medium">Saqlash</button>
+                <button onclick="closeModal('kpiModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium">Bekor qilish</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// =====================
+// ASOSIY O'ZGARUVCHILAR
+// =====================
+const API = ''; // server shu sahifa bilan bir joyda
+const WEEK_DAYS = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'];
+let currentUser = null;
+let currentFilter = 'hafta';
+let allTasks = [];
+let growthChart, circularChart, employeeChart;
+let currentTaskDay = '';
+let currentTaskDate = '';
+
+// =====================
+// API YORDAMCHI FUNKSIYA
+// =====================
+async function apiRequest(url, method = 'GET', body = null) {
+    const token = localStorage.getItem('zb_token');
+    const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' }
+    };
+    if (token) options.headers['Authorization'] = 'Bearer ' + token;
+    if (body) options.body = JSON.stringify(body);
+
+    const res = await fetch(API + url, options);
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Xato yuz berdi');
+    return data;
+}
+
+// =====================
+// LOGIN / LOGOUT
+// =====================
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('loginBtn');
+    const errDiv = document.getElementById('loginError');
+    errDiv.classList.add('hidden');
+    btn.innerHTML = '<span class="loading"></span>';
+    btn.disabled = true;
+
+    try {
+        const data = await apiRequest('/api/auth/login', 'POST', {
+            username: document.getElementById('loginUsername').value,
+            password: document.getElementById('loginPassword').value
+        });
+        localStorage.setItem('zb_token', data.token);
+        currentUser = data.user;
+        showMainApp();
+    } catch (err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.remove('hidden');
+    } finally {
+        btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Kirish';
+        btn.disabled = false;
+    }
+});
+
+function logout() {
+    localStorage.removeItem('zb_token');
+    currentUser = null;
+    allTasks = [];
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('loginPage').classList.remove('hidden');
+}
+
+function showMainApp() {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+    document.getElementById('userName').textContent = currentUser.fio;
+    document.getElementById('userRole').textContent = currentUser.lavozim || '';
+
+    if (currentUser.role === 'admin') {
+        document.getElementById('adminBadge').classList.remove('hidden');
+        document.getElementById('tab-admin').classList.remove('hidden');
+    }
+    setWeekStart();
+    renderDashboard();
+}
+
+// =====================
+// TABLAR
+// =====================
+function switchTab(tab) {
+    ['dashboard', 'kpi', 'savdo', 'admin'].forEach(t => {
+        document.getElementById(t + 'Content').classList.add('hidden');
+        const tabBtn = document.getElementById('tab-' + t);
+        if (tabBtn) { tabBtn.classList.remove('tab-active'); tabBtn.classList.add('text-gray-600'); }
+    });
+    document.getElementById(tab + 'Content').classList.remove('hidden');
+    const activeBtn = document.getElementById('tab-' + tab);
+    activeBtn.classList.add('tab-active');
+    activeBtn.classList.remove('text-gray-600');
+
+    if (tab === 'kpi') renderKPI();
+    if (tab === 'savdo') renderSavdo();
+    if (tab === 'admin') renderAdmin();
+}
+
+function setFilter(filter) {
+    currentFilter = filter;
+    ['hafta', 'oy', 'davomiy'].forEach(f => {
+        const btn = document.getElementById('filter-' + f);
+        if (f === filter) {
+            btn.className = 'px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium';
+        } else {
+            btn.className = 'px-4 py-2 rounded-lg bg-white text-gray-700 text-sm font-medium border border-gray-300';
+        }
+    });
+    renderDashboard();
+}
+
+function setWeekStart() {
+    const input = document.getElementById('weekStart');
+    const date = new Date();
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date.setDate(diff));
+    input.value = monday.toISOString().split('T')[0];
+}
+
+// =====================
+// DASHBOARD
+// =====================
+async function renderDashboard() {
+    try {
+        const weekStart = document.getElementById('weekStart').value;
+        allTasks = await apiRequest(`/api/tasks?filter=${currentFilter}&weekStart=${weekStart}`);
+        renderWeekCards(allTasks);
+        renderGrowthChart(allTasks);
+        renderCircularProgress(allTasks);
+        renderHabitTable(allTasks);
+    } catch (err) {
+        console.error('Dashboard xatosi:', err);
+    }
+}
+
+function renderWeekCards(tasks) {
+    const weekStart = new Date(document.getElementById('weekStart').value);
+    const container = document.getElementById('weekCards');
+
+    if (currentFilter === 'oy' || currentFilter === 'davomiy') {
+        // Oy / davomiy ko'rinishi - kunlar bo'yicha guruhlash
+        const grouped = {};
+        tasks.forEach(t => {
+            if (!grouped[t.date]) grouped[t.date] = [];
+            grouped[t.date].push(t);
+        });
+
+        const dates = Object.keys(grouped).sort();
+        container.innerHTML = dates.map(date => {
+            const dayTasks = grouped[date];
+            const completed = dayTasks.filter(t => t.completed).length;
+            const percent = dayTasks.length > 0 ? Math.round((completed / dayTasks.length) * 100) : 0;
+            const d = new Date(date);
+            const dayName = WEEK_DAYS[d.getDay() === 0 ? 6 : d.getDay() - 1];
+            return buildDayCard(dayName, date, dayTasks, percent);
+        }).join('');
+        return;
+    }
+
+    // Hafta ko'rinishi
+    container.innerHTML = WEEK_DAYS.map((day, idx) => {
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + idx);
+        const dateStr = dayDate.toISOString().split('T')[0];
+        const dayTasks = tasks.filter(t => t.date === dateStr);
+        const completed = dayTasks.filter(t => t.completed).length;
+        const percent = dayTasks.length > 0 ? Math.round((completed / dayTasks.length) * 100) : 0;
+        return buildDayCard(day, dateStr, dayTasks, percent);
+    }).join('');
+}
+
+function buildDayCard(day, dateStr, dayTasks, percent) {
+    const isToday = dateStr === new Date().toISOString().split('T')[0];
+    return `
+        <div class="card p-5 ${isToday ? 'ring-2 ring-green-400' : ''}">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h4 class="font-semibold text-gray-900">${day} ${isToday ? '<span class="text-xs text-green-600 ml-1">Bugun</span>' : ''}</h4>
+                    <p class="text-xs text-gray-500 mt-1">${dateStr}</p>
+                </div>
+                <div class="relative w-16 h-16">
+                    <svg class="progress-ring" width="64" height="64">
+                        <circle cx="32" cy="32" r="28" stroke="#e5e7eb" stroke-width="4" fill="none"/>
+                        <circle cx="32" cy="32" r="28" stroke="#16a34a" stroke-width="4" fill="none"
+                            stroke-dasharray="${2 * Math.PI * 28}"
+                            stroke-dashoffset="${2 * Math.PI * 28 * (1 - percent / 100)}"
+                            stroke-linecap="round"/>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-sm font-bold text-gray-900">${percent}%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-2 max-h-48 overflow-y-auto">
+                ${dayTasks.map(task => `
+                    <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg text-sm">
+                        <input type="checkbox" ${task.completed ? 'checked' : ''}
+                            onchange="toggleTask(${task.id})"
+                            class="w-4 h-4 text-green-600 rounded border-gray-300">
+                        <span class="flex-1 ${task.completed ? 'line-through text-gray-400' : 'text-gray-900'}">${task.name}</span>
+                        <button onclick="openTaskModal(${task.id})" class="text-gray-400 hover:text-green-600">
+                            <i class="fas fa-edit text-xs"></i>
+                        </button>
+                        <button onclick="deleteTask(${task.id})" class="text-gray-400 hover:text-red-600">
+                            <i class="fas fa-trash text-xs"></i>
+                        </button>
+                    </div>
+                `).join('')}
+                ${dayTasks.length === 0 ? '<p class="text-xs text-gray-400 text-center py-4">Vazifa yo\'q</p>' : ''}
+            </div>
+            <button onclick="openAddTaskForDay('${day}', '${dateStr}')"
+                class="w-full mt-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition">
+                <i class="fas fa-plus mr-1"></i>Qo'shish
+            </button>
+        </div>
+    `;
+}
+
+function renderGrowthChart(tasks) {
+    const weekStart = new Date(document.getElementById('weekStart').value);
+    const data = WEEK_DAYS.map((day, idx) => {
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + idx);
+        const dateStr = dayDate.toISOString().split('T')[0];
+        return tasks.filter(t => t.date === dateStr && t.completed).length;
+    });
+
+    if (growthChart) growthChart.destroy();
+    growthChart = new Chart(document.getElementById('growthChart'), {
+        type: 'bar',
+        data: {
+            labels: ['Du', 'Se', 'Ch', 'Pa', 'Ju', 'Sh', 'Ya'],
+            datasets: [{ label: 'Bajarilgan', data, backgroundColor: '#16a34a', borderRadius: 8 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+}
+
+function renderCircularProgress(tasks) {
+    const weekStart = new Date(document.getElementById('weekStart').value);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const weekTasks = tasks.filter(t => { const d = new Date(t.date); return d >= weekStart && d < weekEnd; });
+    const completed = weekTasks.filter(t => t.completed).length;
+    const total = weekTasks.length;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    document.getElementById('overallProgress').textContent = percent + '%';
+    if (circularChart) circularChart.destroy();
+    circularChart = new Chart(document.getElementById('circularProgress'), {
+        type: 'doughnut',
+        data: { datasets: [{ data: [percent, 100 - percent], backgroundColor: ['#16a34a', '#e5e7eb'], borderWidth: 0 }] },
+        options: { cutout: '75%', responsive: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+}
+
+function renderHabitTable(tasks) {
+    const weekStart = new Date(document.getElementById('weekStart').value);
+    const habits = [...new Set(tasks.filter(t => t.habit).map(t => t.name))];
+
+    const tbody = habits.length === 0
+        ? '<tr><td colspan="9" class="text-center py-8 text-gray-400">Odatlar yo\'q. Yangi vazifa qo\'shing.</td></tr>'
+        : habits.map(habit => {
+            const days = WEEK_DAYS.map((day, idx) => {
+                const dayDate = new Date(weekStart);
+                dayDate.setDate(weekStart.getDate() + idx);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                const task = tasks.find(t => t.name === habit && t.date === dateStr);
+                return task && task.completed ? 100 : 0;
+            });
+            const avg = Math.round(days.reduce((a, b) => a + b, 0) / 7);
+            return `
+                <tr class="border-b border-gray-100">
+                    <td class="py-3 px-4 text-sm font-medium text-gray-900">${habit}</td>
+                    ${days.map(d => `<td class="py-3 px-4"><div class="habit-bar"><div class="habit-fill" style="width:${d}%"></div></div></td>`).join('')}
+                    <td class="py-3 px-4 text-sm font-semibold text-green-600">${avg}%</td>
+                </tr>`;
+        }).join('');
+
+    document.getElementById('habitTable').innerHTML = `
+        <thead><tr class="border-b border-gray-200">
+            <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Odat</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Du</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Se</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Ch</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Pa</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Ju</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Sh</th>
+            <th class="text-left py-3 px-4 text-xs text-gray-500">Ya</th>
+            <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">O'rtacha</th>
+        </tr></thead>
+        <tbody>${tbody}</tbody>`;
+}
+
+// =====================
+// VAZIFALAR
+// =====================
+function openAddTaskModal() {
+    document.getElementById('modalTitle').textContent = 'Yangi vazifa qo\'shish';
+    document.getElementById('editTaskId').value = '';
+    document.getElementById('taskName').value = '';
+    document.getElementById('taskComment').value = '';
+    document.getElementById('filePreview').innerHTML = '';
+    document.getElementById('taskFile').value = '';
+    currentTaskDay = WEEK_DAYS[0];
+    currentTaskDate = new Date().toISOString().split('T')[0];
+    document.getElementById('taskModal').classList.remove('hidden');
+}
+
+function openAddTaskForDay(day, date) {
+    openAddTaskModal();
+    currentTaskDay = day;
+    currentTaskDate = date;
+}
+
+function openTaskModal(taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    document.getElementById('modalTitle').textContent = 'Vazifani tahrirlash';
+    document.getElementById('editTaskId').value = taskId;
+    document.getElementById('taskName').value = task.name;
+    document.getElementById('taskComment').value = task.comment || '';
+    currentTaskDay = task.day;
+    currentTaskDate = task.date;
+    document.getElementById('taskModal').classList.remove('hidden');
+}
+
+async function saveTask() {
+    const editId = document.getElementById('editTaskId').value;
+    const name = document.getElementById('taskName').value.trim();
+    if (!name) { alert('Vazifa nomini kiriting!'); return; }
+
+    const file = document.getElementById('taskFile').files[0];
+    let fileData = null;
+    if (file) {
+        fileData = await fileToBase64(file);
+        fileData = { name: file.name, type: file.type, data: fileData };
+    }
+
+    try {
+        if (editId) {
+            await apiRequest(`/api/tasks/${editId}`, 'PUT', {
+                name,
+                comment: document.getElementById('taskComment').value,
+                file_name: fileData?.name,
+                file_type: fileData?.type,
+                file_data: fileData?.data
+            });
+        } else {
+            await apiRequest('/api/tasks', 'POST', {
+                name,
+                comment: document.getElementById('taskComment').value,
+                day: currentTaskDay,
+                date: currentTaskDate,
+                habit: true,
+                file_name: fileData?.name,
+                file_type: fileData?.type,
+                file_data: fileData?.data
+            });
+        }
+        closeModal('taskModal');
+        renderDashboard();
+    } catch (err) {
+        alert('Xato: ' + err.message);
+    }
+}
+
+async function toggleTask(taskId) {
+    try {
+        await apiRequest(`/api/tasks/${taskId}/toggle`, 'PATCH');
+        await renderDashboard();
+    } catch (err) {
+        alert('Xato: ' + err.message);
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Vazifani o\'chirishni xohlaysizmi?')) return;
+    try {
+        await apiRequest(`/api/tasks/${taskId}`, 'DELETE');
+        renderDashboard();
+    } catch (err) {
+        alert('Xato: ' + err.message);
+    }
+}
+
+// =====================
+// KPI
+// =====================
+async function renderKPI() {
+    try {
+        const [kpiList, total] = await Promise.all([
+            apiRequest('/api/kpi'),
+            apiRequest('/api/kpi/total')
+        ]);
+
+        const tbody = document.getElementById('kpiTableBody');
+        tbody.innerHTML = kpiList.length === 0
+            ? '<tr><td colspan="6" class="text-center py-8 text-gray-400">Ma\'lumot yo\'q</td></tr>'
+            : kpiList.map(k => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm text-gray-900">${k.date}</td>
+                    <td class="py-3 px-4 text-sm text-gray-900">${k.task_name}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium ${
+                            k.category === 'Yengil' ? 'bg-green-100 text-green-700' :
+                            k.category === 'Orta' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'}">
+                            ${k.category === 'Orta' ? "O'rta" : k.category === 'Ogir' ? "Og'ir" : k.category}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-sm font-semibold text-gray-900">${(k.summa || 0).toLocaleString()} so'm</td>
+                    <td class="py-3 px-4 text-sm text-gray-600">${k.comment || '-'}</td>
+                    <td class="py-3 px-4 text-sm">
+                        <button onclick="editKPI(${k.id})" class="text-blue-600 hover:text-blue-700 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteKPI(${k.id})" class="text-red-600 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+
+        document.getElementById('totalSalary').textContent = (total.total || 0).toLocaleString() + ' so\'m';
+    } catch (err) {
+        console.error('KPI xatosi:', err);
+    }
+}
+
+function openAddKPIModal() {
+    document.getElementById('editKPIId').value = '';
+    document.getElementById('kpiDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('kpiTaskName').value = '';
+    document.getElementById('kpiCategory').value = 'Yengil';
+    document.getElementById('kpiComment').value = '';
+    document.getElementById('kpiModal').classList.remove('hidden');
+}
+
+async function editKPI(id) {
+    try {
+        const list = await apiRequest('/api/kpi');
+        const k = list.find(x => x.id === id);
+        if (!k) return;
+        document.getElementById('editKPIId').value = k.id;
+        document.getElementById('kpiDate').value = k.date;
+        document.getElementById('kpiTaskName').value = k.task_name;
+        document.getElementById('kpiCategory').value = k.category;
+        document.getElementById('kpiComment').value = k.comment || '';
+        document.getElementById('kpiModal').classList.remove('hidden');
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+async function saveKPI() {
+    const editId = document.getElementById('editKPIId').value;
+    const body = {
+        date: document.getElementById('kpiDate').value,
+        task_name: document.getElementById('kpiTaskName').value,
+        category: document.getElementById('kpiCategory').value,
+        comment: document.getElementById('kpiComment').value
+    };
+    if (!body.task_name || !body.date) { alert('Sana va vazifa nomini kiriting!'); return; }
+
+    try {
+        if (editId) {
+            await apiRequest(`/api/kpi/${editId}`, 'PUT', body);
+        } else {
+            await apiRequest('/api/kpi', 'POST', body);
+        }
+        closeModal('kpiModal');
+        renderKPI();
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+async function deleteKPI(id) {
+    if (!confirm('O\'chirishni xohlaysizmi?')) return;
+    try {
+        await apiRequest(`/api/kpi/${id}`, 'DELETE');
+        renderKPI();
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+// =====================
+// ADMIN PANEL
+// =====================
+async function renderAdmin() {
+    try {
+        // planMonth ni joriy oyga o'rnatish
+        document.getElementById('planMonth').value = new Date().toISOString().slice(0, 7);
+        const settings = await apiRequest('/api/admin/kpi-settings');
+        settings.forEach(s => {
+            if (s.category === 'Yengil') document.getElementById('rateYengil').value = s.rate;
+            if (s.category === 'Orta') document.getElementById('rateOrta').value = s.rate;
+            if (s.category === 'Ogir') document.getElementById('rateOgir').value = s.rate;
+        });
+        await renderEmployeeStats();
+        await renderTemplates();
+    } catch (err) { console.error('Admin xatosi:', err); }
+}
+
+async function saveKPISettings() {
+    try {
+        await apiRequest('/api/admin/kpi-settings', 'PUT', {
+            Yengil: document.getElementById('rateYengil').value,
+            Orta: document.getElementById('rateOrta').value,
+            Ogir: document.getElementById('rateOgir').value
+        });
+        alert('Sozlamalar saqlandi!');
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+async function addEmployee() {
+    const errDiv = document.getElementById('addEmpError');
+    errDiv.classList.add('hidden');
+    const body = {
+        fio: document.getElementById('newEmpFIO').value,
+        username: document.getElementById('newEmpLogin').value,
+        password: document.getElementById('newEmpPassword').value,
+        lavozim: document.getElementById('newEmpLavozim').value
+    };
+    if (!body.fio || !body.username || !body.password) {
+        errDiv.textContent = 'F.I.O, login va parolni kiriting!';
+        errDiv.classList.remove('hidden');
+        return;
+    }
+    try {
+        await apiRequest('/api/admin/users', 'POST', body);
+        document.getElementById('newEmpFIO').value = '';
+        document.getElementById('newEmpLogin').value = '';
+        document.getElementById('newEmpPassword').value = '';
+        document.getElementById('newEmpLavozim').value = '';
+        alert('Hodim qo\'shildi!');
+        renderEmployeeStats();
+    } catch (err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.remove('hidden');
+    }
+}
+
+async function renderEmployeeStats() {
+    try {
+        const stats = await apiRequest('/api/admin/stats');
+        document.getElementById('employeeStatsList').innerHTML = stats.map(u => `
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h4 class="font-semibold text-gray-900">${u.fio}</h4>
+                        <p class="text-xs text-gray-500">${u.lavozim || ''}</p>
+                    </div>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        ${(u.monthly_salary || 0).toLocaleString()} so'm
+                    </span>
+                </div>
+                <div class="space-y-1 text-xs text-gray-600">
+                    <p><i class="fas fa-tasks mr-2"></i>Bugun: ${u.today_completed || 0} ta vazifa bajarildi</p>
+                    <p><i class="fas fa-chart-bar mr-2"></i>Jami bajarilgan: ${u.completed_tasks || 0} ta</p>
+                    <p><i class="fas fa-coins mr-2"></i>KPI ishlar: ${u.kpi_count || 0} ta</p>
+                </div>
+            </div>
+        `).join('');
+
+        if (employeeChart) employeeChart.destroy();
+        employeeChart = new Chart(document.getElementById('employeeComparisonChart'), {
+            type: 'bar',
+            data: {
+                labels: stats.map(u => u.fio.split(' ')[0]),
+                datasets: [{
+                    label: 'Bajarilgan vazifalar',
+                    data: stats.map(u => u.completed_tasks || 0),
+                    backgroundColor: '#16a34a',
+                    borderRadius: 8
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        });
+    } catch (err) { console.error('Stats xatosi:', err); }
+}
+
+async function renderTemplates() {
+    try {
+        const templates = await apiRequest('/api/admin/templates');
+        document.getElementById('templatesList').innerHTML = templates.map(t => `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span class="text-sm text-gray-900">${t.name}</span>
+                <button onclick="deleteTemplate(${t.id})" class="text-red-600 hover:text-red-700">
+                    <i class="fas fa-trash text-sm"></i>
+                </button>
+            </div>
+        `).join('');
+    } catch (err) { console.error('Templates xatosi:', err); }
+}
+
+async function addTemplate() {
+    const name = document.getElementById('templateName').value.trim();
+    if (!name) return;
+    try {
+        await apiRequest('/api/admin/templates', 'POST', { name });
+        document.getElementById('templateName').value = '';
+        renderTemplates();
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+async function deleteTemplate(id) {
+    if (!confirm('O\'chirishni xohlaysizmi?')) return;
+    try {
+        await apiRequest(`/api/admin/templates/${id}`, 'DELETE');
+        renderTemplates();
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+// =====================
+// YORDAMCHI FUNKSIYALAR
+// =====================
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+async function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+document.getElementById('taskFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const preview = document.getElementById('filePreview');
+        if (file.type.startsWith('image/')) {
+            const data = await fileToBase64(file);
+            preview.innerHTML = `<img src="${data}" class="file-preview">`;
+        } else {
+            preview.innerHTML = `<div class="p-3 bg-gray-100 rounded-lg text-sm"><i class="fas fa-file mr-2"></i>${file.name}</div>`;
+        }
+    }
+});
+
+// =====================
+// AVTOMATIK KIRISH
+// =====================
+(async () => {
+    const token = localStorage.getItem('zb_token');
+    if (token) {
+        try {
+            const user = await apiRequest('/api/auth/me');
+            currentUser = user;
+            showMainApp();
+        } catch {
+            localStorage.removeItem('zb_token');
+        }
+    }
+})();
+</script>
+<!-- Sale Modal -->
+<div id="saleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 modal">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 modal-content">
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Kunlik savdo kiritish</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Sana</label>
+                <input type="date" id="saleDate" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Savdo summasi (so'm)</label>
+                <input type="number" id="saleAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="5000000">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Izoh (ixtiyoriy)</label>
+                <textarea id="saleComment" class="w-full px-4 py-2 border border-gray-300 rounded-lg" rows="2"></textarea>
+            </div>
+            <div id="saleError" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="saveSale()" class="flex-1 btn-primary py-2 rounded-lg font-medium">Saqlash</button>
+                <button onclick="closeModal('saleModal')" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium">Bekor qilish</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// =====================
+// SAVDO BO'LIMI
+// =====================
+
+function getMonthOptions() {
+    const options = [];
+    const now = new Date();
+    // Timezone muammosini hal qilish
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-11
+    for (let i = 0; i < 6; i++) {
+        let y = year;
+        let m = month - i;
+        if (m < 0) { m += 12; y -= 1; }
+        const val = `${y}-${String(m + 1).padStart(2, '0')}`;
+        const monthNames = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+        const label = `${monthNames[m]} ${y}`;
+        options.push({ val, label });
+    }
+    return options;
+}
+
+function fillMonthSelects() {
+    const opts = getMonthOptions();
+    const current = new Date().toISOString().slice(0, 7);
+    const html = opts.map(o => `<option value="${o.val}" ${o.val === current ? 'selected' : ''}>${o.label}</option>`).join('');
+    ['kpiMonth', 'adminSalesMonth'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    });
+}
+
+async function renderSavdo() {
+    fillMonthSelects();
+    await renderMyKPI();
+    await renderDailySales();
+    if (currentUser.role === 'admin') {
+        document.getElementById('adminSalesSection').classList.remove('hidden');
+        await loadFilials();
+        await loadUsersForPlan();
+        await renderAdminSales();
+    }
+}
+
+async function renderMyKPI() {
+    const month = document.getElementById('kpiMonth').value;
+    try {
+        const r = await apiRequest(`/api/sales/kpi-result?month=${month}`);
+        const box = document.getElementById('kpiResultBox');
+
+        if (r.no_plan) {
+            box.innerHTML = `<p class="text-white opacity-80"><i class="fas fa-info-circle mr-2"></i>${r.message}</p>`;
+            return;
+        }
+
+        const percentColor = r.percent >= 100 ? 'text-yellow-300' : r.percent >= 70 ? 'text-green-200' : 'text-red-300';
+        const bonusInfo = r.percent >= 100 ? '✅ 1,000,000 so\'m bonus' : r.percent >= 70 ? '✅ 700,000 so\'m bonus' : '❌ Bonus yo\'q (70% dan past)';
+
+        box.innerHTML = `
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div class="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                    <p class="text-xs opacity-80">Reja</p>
+                    <p class="font-bold text-sm mt-1">${(r.plan_amount/1000000).toFixed(0)} mln</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                    <p class="text-xs opacity-80">Bajarildi</p>
+                    <p class="font-bold text-sm mt-1">${(r.sold_amount/1000000).toFixed(1)} mln</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                    <p class="text-xs opacity-80">Foiz</p>
+                    <p class="font-bold text-lg mt-1 ${percentColor}">${r.percent}%</p>
+                </div>
+                <div class="bg-white bg-opacity-20 rounded-xl p-3 text-center">
+                    <p class="text-xs opacity-80">Komissiya (${r.commission_rate}%)</p>
+                    <p class="font-bold text-sm mt-1">${r.commission.toLocaleString()} so'm</p>
+                </div>
+            </div>
+            <div class="bg-white bg-opacity-20 rounded-xl p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-sm opacity-80">${bonusInfo}</p>
+                    <p class="text-xs opacity-70 mt-1">Filial: ${r.filial} | Lavozim: ${r.lavozim}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-xs opacity-80">Jami maosh</p>
+                    <p class="text-2xl font-bold">${r.total.toLocaleString()} so'm</p>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        document.getElementById('kpiResultBox').innerHTML = `<p class="text-white opacity-80">Xato: ${err.message}</p>`;
+    }
+}
+
+async function renderDailySales() {
+    const month = document.getElementById('kpiMonth').value;
+    try {
+        const sales = await apiRequest(`/api/sales/daily?month=${month}`);
+        const total = sales.reduce((s, x) => s + x.amount, 0);
+
+        document.getElementById('dailySalesBody').innerHTML = sales.length === 0
+            ? '<tr><td colspan="4" class="text-center py-8 text-gray-400">Savdo kiritilmagan</td></tr>'
+            : sales.map(s => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm text-gray-900">${s.date}</td>
+                    <td class="py-3 px-4 text-sm font-semibold text-gray-900">${s.amount.toLocaleString()} so'm</td>
+                    <td class="py-3 px-4 text-sm text-gray-600">${s.comment || '-'}</td>
+                    <td class="py-3 px-4">
+                        <button onclick="deleteSale(${s.id})" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash text-sm"></i>
+                        </button>
+                    </td>
+                </tr>`).join('')
+            + `<tr class="bg-green-50">
+                <td class="py-3 px-4 text-sm font-bold text-gray-900">Jami</td>
+                <td class="py-3 px-4 text-sm font-bold text-green-700">${total.toLocaleString()} so'm</td>
+                <td colspan="2"></td>
+               </tr>`;
+    } catch (err) {
+        console.error('Daily sales xatosi:', err);
+    }
+}
+
+function openSaleModal() {
+    document.getElementById('saleDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('saleAmount').value = '';
+    document.getElementById('saleComment').value = '';
+    document.getElementById('saleError').classList.add('hidden');
+    document.getElementById('saleModal').classList.remove('hidden');
+}
+
+async function saveSale() {
+    const errDiv = document.getElementById('saleError');
+    errDiv.classList.add('hidden');
+    const date = document.getElementById('saleDate').value;
+    const amount = document.getElementById('saleAmount').value;
+    const comment = document.getElementById('saleComment').value;
+
+    if (!date || !amount) { errDiv.textContent = 'Sana va summani kiriting!'; errDiv.classList.remove('hidden'); return; }
+
+    try {
+        await apiRequest('/api/sales/daily', 'POST', { date, amount: parseFloat(amount), comment });
+        closeModal('saleModal');
+        renderSavdo();
+    } catch (err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.remove('hidden');
+    }
+}
+
+async function deleteSale(id) {
+    if (!confirm("O'chirishni xohlaysizmi?")) return;
+    try {
+        await apiRequest(`/api/sales/daily/${id}`, 'DELETE');
+        renderSavdo();
+    } catch (err) { alert('Xato: ' + err.message); }
+}
+
+async function loadFilials() {
+    const filials = await apiRequest('/api/sales/filials');
+    const opts = filials.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    document.getElementById('planFilialId').innerHTML = opts;
+
+    const filterOpts = '<option value="">Barcha filiallar</option>' + opts;
+    document.getElementById('adminFilialFilter').innerHTML = filterOpts;
+}
+
+async function loadUsersForPlan() {
+    const users = await apiRequest('/api/admin/users');
+    document.getElementById('planUserId').innerHTML = users.map(u =>
+        `<option value="${u.id}">${u.fio} (${u.lavozim || 'hodim'})</option>`
+    ).join('');
+}
+
+async function savePlan() {
+    const errDiv = document.getElementById('planError');
+    errDiv.classList.add('hidden');
+    const body = {
+        user_id: document.getElementById('planUserId').value,
+        filial_id: document.getElementById('planFilialId').value,
+        month: document.getElementById('planMonth').value,
+        plan_amount: parseFloat(document.getElementById('planAmount').value),
+        commission_rate: parseFloat(document.getElementById('planRate').value)
+    };
+    if (!body.month || !body.plan_amount) {
+        errDiv.textContent = 'Oy va reja summasini kiriting!';
+        errDiv.classList.remove('hidden');
+        return;
+    }
+    try {
+        await apiRequest('/api/sales/plan', 'POST', body);
+        alert('Reja saqlandi!');
+        renderAdminSales();
+    } catch (err) {
+        errDiv.textContent = err.message;
+        errDiv.classList.remove('hidden');
+    }
+}
+
+async function renderAdminSales() {
+    const month = document.getElementById('adminSalesMonth').value;
+    const filial_id = document.getElementById('adminFilialFilter').value;
+    try {
+        const data = await apiRequest(`/api/sales/kpi-all?month=${month}&filial_id=${filial_id}`);
+        document.getElementById('adminSalesBody').innerHTML = data.length === 0
+            ? '<tr><td colspan="9" class="text-center py-8 text-gray-400">Ma\'lumot yo\'q</td></tr>'
+            : data.map(r => {
+                const pColor = r.percent >= 100 ? 'text-green-600 font-bold' : r.percent >= 70 ? 'text-yellow-600' : 'text-red-600';
+                return `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-3 px-4 text-sm font-medium text-gray-900">${r.fio}</td>
+                    <td class="py-3 px-4 text-sm text-gray-600">${r.filial}</td>
+                    <td class="py-3 px-4 text-sm text-gray-600">${r.lavozim || '-'}</td>
+                    <td class="py-3 px-4 text-sm text-gray-900">${(r.plan_amount/1000000).toFixed(0)} mln</td>
+                    <td class="py-3 px-4 text-sm text-gray-900">${(r.sold_amount/1000000).toFixed(1)} mln</td>
+                    <td class="py-3 px-4 text-sm ${pColor}">${r.percent}%</td>
+                    <td class="py-3 px-4 text-sm text-gray-900">${r.commission.toLocaleString()}</td>
+                    <td class="py-3 px-4 text-sm text-gray-900">${r.bonus.toLocaleString()}</td>
+                    <td class="py-3 px-4 text-sm font-bold text-green-700">${r.total.toLocaleString()}</td>
+                </tr>`;
+            }).join('');
+    } catch (err) { console.error('Admin sales xatosi:', err); }
+}
+</script>
+
+</body>
+</html>
